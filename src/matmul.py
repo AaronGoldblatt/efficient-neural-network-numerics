@@ -26,7 +26,7 @@ def naive(A, B, **kwargs):
     return A @ B
 
 
-def svd(A, B, rank_A=None, rank_B=None):
+def svd(A, B, rank_A=None, rank_B=None, return_approx_matrices=False):
     """
     Applies low-rank approximation (SVD) to both matrix A and B with rank rank_A
     and rank_B respectively.
@@ -34,6 +34,7 @@ def svd(A, B, rank_A=None, rank_B=None):
     :param B: (M, K) pytorch tensor
     :param rank_A: None or int. None means use original A matrix.
     :param rank_B: None or int. None means use original B matrix.
+    :param return_approx_matrices: bool. If True, return the approximated matrices without multiplying them.
     :return: a (N, K) pytorch tensor
     """
     if rank_A is None and rank_B is None:
