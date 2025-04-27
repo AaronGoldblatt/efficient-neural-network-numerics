@@ -68,6 +68,9 @@ def svd(A, B, rank_A=None, rank_B=None, return_approx_matrices=False):
     A_approx = get_svd_approximation(A, rank_A)
     B_approx = get_svd_approximation(B, rank_B)
     
+    if return_approx_matrices:
+        return A_approx, B_approx
+    
     return A_approx @ B_approx
 
 
