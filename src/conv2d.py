@@ -81,7 +81,7 @@ def im2col(x, k, b):
 
 
 def winograd(x, k, b):
-    """ Implementation of Winograd method for 2D convolution, which uses step output tile size 2x2 and kernel size 3x3 matrix multiplication of image patches and kernel to compute the convolution. """
+    """ Implementation of Winograd method for 2D convolution, which uses stepwise output tile size 2x2 and kernel size 3x3 matrix multiplication of image patches and kernel to compute the convolution. """
     height_x, width_x = x.shape
     height_k, width_k = k.shape
     height_out = height_x - height_k + 1
@@ -150,7 +150,7 @@ def winograd(x, k, b):
         for curr_width in range(0, width_out, 2):
             input_tile = x_padded[
                 curr_height : curr_height + 4,
-                curr_width : curr_width + 4
+                curr_width : curr_width + 4,
             ]
             
             input_tile_transformed = (
@@ -172,15 +172,60 @@ def winograd(x, k, b):
             
             output[
                 curr_height : curr_height + output_h_size,
-                curr_width : curr_width + output_w_size
+                curr_width : curr_width + output_w_size,
             ] = output_tile[
                 : output_h_size,
-                : output_w_size
+                : output_w_size,
             ]
     
     return output + b
 
 
 def fft(x, k, b):
-    """ TODO: implement `fft`"""
-    raise NotImplementedError
+    """Implementation of FFT method for 2D convolution, which converts to the frequency domain to compute the convolution as multiplication of two Fourier transforms."""
+    height_x, width_x = x.shape
+    height_k, width_k = k.shape
+    
+    padded_height = height_x + height_k - 1
+    padded_width = width_x + width_k - 1
+    
+    x_padded = torch.zeros(
+        padded_height,
+        padded_width,
+        device=x.device,
+        dtype=x.dtype
+    )
+    x_padded[
+        : height_x,
+        : width_x,
+    ] = x
+    
+    k_padded = torch.zeros(
+        padded_height,
+        padded_width,
+        device=k.device,
+        dtype=k.dtype
+    )
+    k_flipped = k.flip(
+        (0, 1)
+    )
+    k_padded[
+        : height_k,
+        : width_k,
+    ] = k_flipped
+    
+    x_fft = torch.fft.fft2(x_padded)
+    k_fft = torch.fft.fft2(k_padded)
+    
+    result_fft = x_fft * k_fft
+    
+    result_full = torch.real(
+        torch.fft.ifft2(result_fft)
+    )
+    
+    result = result_full[
+        height_k - 1 : height_x,
+        width_k - 1 : width_x,
+    ]
+    
+    return result + b
