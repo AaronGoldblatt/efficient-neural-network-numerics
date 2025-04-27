@@ -50,8 +50,34 @@ def pytorch(x, k, b):
 
 
 def im2col(x, k, b):
-    """ TODO: implement `im2col`"""
-    raise NotImplementedError
+    """ Implementation of im2col method for 2D convolution, which uses matrix multiplication of image patches and kernel to compute the convolution. """
+    height_k, width_k = k.shape
+    height_out = x.shape[0] - height_k + 1
+    width_out = x.shape[1] - width_k + 1
+    
+    cols = torch.zeros(
+        height_k * width_k,
+        height_out * width_out
+    )
+    
+    for curr_height in range(height_out):
+        for curr_width in range(width_out):
+            patch = x[
+                curr_height: curr_height + height_k,
+                curr_width: curr_width + width_k
+            ].reshape(-1)
+            cols[
+                :,
+                 curr_height * width_out + curr_width
+            ] = patch
+    
+    k_flat = k.flatten()
+    
+    result = k_flat @ cols
+    
+    result = result.reshape(height_out, width_out)
+    
+    return result + b
 
 
 def winograd(x, k, b):

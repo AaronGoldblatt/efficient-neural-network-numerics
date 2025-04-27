@@ -1,0 +1,10 @@
+# Pytest auxiliary files
+tests/__pycache__
+__pycache__/
+.pytest_cache
+
+# Virtual environment
+.venv
+
+# VSCode settings
+.vscode
