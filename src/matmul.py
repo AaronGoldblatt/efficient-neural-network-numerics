@@ -71,5 +71,47 @@ def svd(A, B, rank_A=None, rank_B=None):
 
 
 def logmatmul(A, B, **kwargs):
-    """ TODO: use log multiplication for matrix-matrix multiplication """
-    raise NotImplementedError
+    """Implements log-matrix multiplication, which is done by converting the matrices to log-space and then summing instead of multiplying."""
+    rows_A, cols_A = A.shape
+    rows_B, cols_B = B.shape
+    
+    assert cols_A == rows_B, f"Matrices' dimensions not compatible for multiplication, A cols: {cols_A} and B rows: {rows_B} are not equal"
+    
+    sign_A = torch.sign(A)
+    sign_B = torch.sign(B)
+    
+    epsilon = 1e-30
+    log_A = torch.log2(torch.abs(A) + epsilon)
+    log_B = torch.log2(torch.abs(B) + epsilon)
+    
+    sign_A = sign_A.view(
+        rows_A,
+        cols_A,
+        1
+    )
+    sign_B = sign_B.view(
+        1,
+        rows_B,
+        cols_B
+    )
+    
+    log_A = log_A.view(
+        rows_A,
+        cols_A,
+        1
+    )
+    log_B = log_B.view(
+        1,
+        rows_B,
+        cols_B
+    )
+    
+    sum_of_logs = log_A + log_B
+    product_of_signs = sign_A * sign_B
+    
+    element_products = product_of_signs * (2 ** sum_of_logs)
+    
+    result = torch.sum(element_products, dim=1)
+    
+    return result
+    
