@@ -28,7 +28,7 @@ def naive(A, B, **kwargs):
 
 def svd(A, B, rank_A=None, rank_B=None):
     """
-    Apply low-rank approximation (SVD) to both matrix A and B with rank rank_A
+    Applies low-rank approximation (SVD) to both matrix A and B with rank rank_A
     and rank_B respectively.
     :param A: (N, M) pytorch tensor
     :param B: (M, K) pytorch tensor
@@ -36,7 +36,38 @@ def svd(A, B, rank_A=None, rank_B=None):
     :param rank_B: None or int. None means use original B matrix.
     :return: a (N, K) pytorch tensor
     """
-    raise NotImplementedError
+    if rank_A is None and rank_B is None:
+        return A @ B
+    
+    def get_svd_approximation(matrix, rank):
+        if rank is None:
+            return matrix
+            
+        left_singular_vectors, singular_values, right_singular_vectors = torch.svd(matrix, some=True)
+        rank = min(
+            rank,
+            min(matrix.shape)
+        )
+        return (
+            left_singular_vectors[
+                :,
+                : rank
+            ]
+            @ (
+                singular_values[: rank].reshape(-1, 1)
+                * (
+                    right_singular_vectors[
+                        :,
+                        : rank
+                    ].T
+                )
+            )
+        )
+    
+    A_approx = get_svd_approximation(A, rank_A)
+    B_approx = get_svd_approximation(B, rank_B)
+    
+    return A_approx @ B_approx
 
 
 def logmatmul(A, B, **kwargs):
