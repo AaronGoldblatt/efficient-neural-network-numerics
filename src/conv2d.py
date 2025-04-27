@@ -57,7 +57,9 @@ def im2col(x, k, b):
     
     cols = torch.zeros(
         height_k * width_k,
-        height_out * width_out
+        height_out * width_out,
+        dtype=x.dtype,
+        device=x.device
     )
     
     for curr_height in range(height_out):
