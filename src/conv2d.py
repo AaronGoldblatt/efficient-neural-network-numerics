@@ -186,12 +186,12 @@ def fft(x, k, b):
     height_x, width_x = x.shape
     height_k, width_k = k.shape
     
-    padded_height = height_x + height_k - 1
-    padded_width = width_x + width_k - 1
+    height_padded = height_x + height_k - 1
+    width_padded = width_x + width_k - 1
     
     x_padded = torch.zeros(
-        padded_height,
-        padded_width,
+        height_padded,
+        width_padded,
         device=x.device,
         dtype=x.dtype
     )
@@ -201,8 +201,8 @@ def fft(x, k, b):
     ] = x
     
     k_padded = torch.zeros(
-        padded_height,
-        padded_width,
+        height_padded,
+        width_padded,
         device=k.device,
         dtype=k.dtype
     )
