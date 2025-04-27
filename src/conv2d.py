@@ -63,8 +63,8 @@ def im2col(x, k, b):
     for curr_height in range(height_out):
         for curr_width in range(width_out):
             patch = x[
-                curr_height: curr_height + height_k,
-                curr_width: curr_width + width_k
+                curr_height : curr_height + height_k,
+                curr_width : curr_width + width_k
             ].reshape(-1)
             cols[
                 :,
@@ -81,8 +81,104 @@ def im2col(x, k, b):
 
 
 def winograd(x, k, b):
-    """ TODO: implement `winograd`"""
-    raise NotImplementedError
+    """ Implementation of Winograd method for 2D convolution, which uses step output tile size 2x2 and kernel size 3x3 matrix multiplication of image patches and kernel to compute the convolution. """
+    height_x, width_x = x.shape
+    height_k, width_k = k.shape
+    height_out = height_x - height_k + 1
+    width_out = width_x - width_k + 1
+    
+    if height_k != 3 or width_k != 3:
+        raise ValueError("Kernel must be 3x3 for this Winograd implementation")
+    
+    bottom_padding = (2 - height_out % 2) % 2
+    right_padding = (2 - width_out % 2) % 2
+    x_padded = torch.nn.functional.pad(
+        x, 
+        (
+            0,
+            right_padding + 2,
+            0,
+            bottom_padding + 2
+        )
+    )
+    
+    input_transform = torch.tensor(
+        [
+            [1, 0, -1, 0],
+            [0, 1, 1, 0],
+            [0, -1, 1, 0],
+            [0, -1, 0, 1],
+        ], 
+        dtype=x_padded.dtype,
+        device=x_padded.device
+    )
+    
+    kernel_transform = torch.tensor(
+        [
+            [1, 0, 0],
+            [0.5, 0.5, 0.5],
+            [0.5, -0.5, 0.5],
+            [0, 0, 1],
+        ], 
+        dtype=k.dtype,
+        device=k.device
+    )
+    
+    output_transform = torch.tensor(
+        [
+            [1, 1, 1, 0],
+            [0, 1, -1, 1],
+        ], 
+        dtype=x_padded.dtype,
+        device=x_padded.device
+    )
+    
+    kernel_transformed = (
+        kernel_transform
+        @ k
+        @ kernel_transform.T
+    )
+    
+    output = torch.zeros(
+        height_out,
+        width_out,
+        dtype=x_padded.dtype,
+        device=x_padded.device
+    )
+    
+    for curr_height in range(0, height_out, 2):
+        for curr_width in range(0, width_out, 2):
+            input_tile = x_padded[
+                curr_height : curr_height + 4,
+                curr_width : curr_width + 4
+            ]
+            
+            input_tile_transformed = (
+                input_transform
+                @ input_tile
+                @ input_transform.T
+            )
+            
+            element_wise_multiplication = input_tile_transformed * kernel_transformed
+            
+            output_tile = (
+                output_transform
+                @ element_wise_multiplication
+                @ output_transform.T
+            )
+            
+            output_h_size = min(2, height_out - curr_height)
+            output_w_size = min(2, width_out - curr_width)
+            
+            output[
+                curr_height : curr_height + output_h_size,
+                curr_width : curr_width + output_w_size
+            ] = output_tile[
+                : output_h_size,
+                : output_w_size
+            ]
+    
+    return output + b
 
 
 def fft(x, k, b):
