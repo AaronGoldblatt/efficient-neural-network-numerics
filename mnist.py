@@ -6,6 +6,9 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torchvision import datasets, transforms
 from torch.optim.lr_scheduler import StepLR
+import time
+import pickle
+import numpy as np
 
 
 class Net(nn.Module):
@@ -25,6 +28,22 @@ class Net(nn.Module):
         x = self.fc3(x)
         output = F.log_softmax(x, dim=1)
         return output
+
+
+class SvdLinear(nn.Module):
+    def __init__(self, original_layer, rank):
+        super().__init__()
+        left_singular_vectors, singular_values, right_singular_vectors = torch.linalg.svd(original_layer.weight, full_matrices=False)
+        self.left_singular_vectors = nn.Parameter(left_singular_vectors[:, :rank])
+        self.singular_values = nn.Parameter(singular_values[:rank])
+        self.right_singular_vectors = nn.Parameter(right_singular_vectors[:rank, :].T)
+        self.bias = nn.Parameter(original_layer.bias.clone())
+        
+    def forward(self, x):
+        out = x @ self.right_singular_vectors
+        out = out * self.singular_values
+        out = out @ self.left_singular_vectors.T
+        return out + self.bias
 
 
 def train(args, model, device, train_loader, optimizer, epoch):
@@ -61,6 +80,8 @@ def test(model, device, test_loader):
     print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
         test_loss, correct, len(test_loader.dataset),
         100. * correct / len(test_loader.dataset)))
+    
+    return correct
 
 
 def main():
