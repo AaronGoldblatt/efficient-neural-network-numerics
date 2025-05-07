@@ -9,6 +9,7 @@ from torch.optim.lr_scheduler import StepLR
 import time
 import pickle
 import numpy as np
+from src.matmul import svd
 
 
 class Net(nn.Module):
@@ -82,6 +83,23 @@ def test(model, device, test_loader):
         100. * correct / len(test_loader.dataset)))
     
     return correct
+
+
+def compress_weights_svd(model, rank_fc1, rank_fc2, device):
+    original_fc1 = model.fc1.weight.data
+    original_fc2 = model.fc2.weight.data
+    compressed_fc1 = svd(
+        original_fc1, 
+        torch.eye(original_fc1.shape[1]).to(device), 
+        rank_A=rank_fc1
+    )
+    compressed_fc2 = svd(
+        original_fc2, 
+        torch.eye(original_fc2.shape[1]).to(device), 
+        rank_A=rank_fc2
+    )
+    model.fc1.weight.data = compressed_fc1
+    model.fc2.weight.data = compressed_fc2
 
 
 def main():
